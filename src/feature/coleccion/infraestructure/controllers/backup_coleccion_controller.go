@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,9 @@ import (
 	"coleccionbackend/src/feature/coleccion/domain"
 	"coleccionbackend/src/feature/coleccion/domain/entities"
 )
+
+// maxDescargasConcurrentes limita cuántas imágenes se bajan de Drive a la vez.
+const maxDescargasConcurrentes = 5
 
 type BackupColeccionController struct {
 	listUC       *application.ListColeccionUseCase
@@ -52,23 +56,52 @@ func (ctrl *BackupColeccionController) Handle(c *gin.Context) {
 		return
 	}
 
-	// 2. Agregar las imágenes organizadas por carpeta de vehículo
+	// 2. Imágenes: se descargan en paralelo (red, lo lento) pero se escriben
+	//    al ZIP de forma secuencial y en orden, para no corromper el archivo.
+
+	// Construir la lista plana de tareas, preservando el orden.
+	type imgTask struct {
+		entryName string // ruta dentro del ZIP, ej: "imagenes/01_Batmobile/2.jpg"
+		fileID    string
+	}
+	var tasks []imgTask
 	for idx, v := range vehiculos {
 		folder := fmt.Sprintf("imagenes/%02d_%s", idx+1, sanitizeName(v.Nombre))
-
-		// Descargar las imágenes del vehículo en paralelo
-		contents := ctrl.downloadImages(v.ImageIDs)
-		for i, content := range contents {
-			if content == nil {
-				continue // falló la descarga de esta imagen, se omite
-			}
-			entryName := fmt.Sprintf("%s/%d.jpg", folder, i+1)
-			w, err := zw.Create(entryName)
-			if err != nil {
-				continue
-			}
-			_, _ = w.Write(content)
+		for i, id := range v.ImageIDs {
+			tasks = append(tasks, imgTask{
+				entryName: fmt.Sprintf("%s/%d.jpg", folder, i+1),
+				fileID:    id,
+			})
 		}
+	}
+
+	// FASE 1: descargar todo en paralelo (máx maxDescargasConcurrentes a la vez).
+	contenidos := make([][]byte, len(tasks))
+	sem := make(chan struct{}, maxDescargasConcurrentes)
+	var wg sync.WaitGroup
+	for i, t := range tasks {
+		wg.Add(1)
+		sem <- struct{}{} // bloquea si ya hay 5 descargas en curso
+		go func(i int, fileID string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if data, err := ctrl.imageService.Download(fileID); err == nil {
+				contenidos[i] = data
+			}
+		}(i, t.fileID)
+	}
+	wg.Wait()
+
+	// FASE 2: escribir al ZIP en orden (secuencial → estructura siempre correcta).
+	for i, t := range tasks {
+		if contenidos[i] == nil {
+			continue // descarga fallida, se omite esa imagen
+		}
+		w, err := zw.Create(t.entryName)
+		if err != nil {
+			continue
+		}
+		_, _ = w.Write(contenidos[i])
 	}
 }
 
@@ -88,28 +121,6 @@ func (ctrl *BackupColeccionController) writeExcel(zw *zip.Writer, vehiculos []en
 	}
 	_, err = w.Write(buf.Bytes())
 	return err
-}
-
-// downloadImages descarga las imágenes de un vehículo concurrentemente,
-// preservando el orden. Una imagen fallida queda como nil.
-func (ctrl *BackupColeccionController) downloadImages(imageIDs []string) [][]byte {
-	results := make([][]byte, len(imageIDs))
-	done := make(chan struct{}, len(imageIDs))
-
-	for i, id := range imageIDs {
-		go func(i int, id string) {
-			defer func() { done <- struct{}{} }()
-			data, err := ctrl.imageService.Download(id)
-			if err == nil {
-				results[i] = data
-			}
-		}(i, id)
-	}
-
-	for range imageIDs {
-		<-done
-	}
-	return results
 }
 
 // sanitizeName limpia el nombre para usarlo como nombre de carpeta/archivo.
