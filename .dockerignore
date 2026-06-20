@@ -1,0 +1,10 @@
+.env
+credentials.json
+*.exe
+*.test
+*.md
+docs/
+migrations/
+cmd/oauth-token/
+.git/
+.gitignore

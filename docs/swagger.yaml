@@ -1,0 +1,7 @@
+swagger: "2.0"
+info:
+  title: Coleccion Backend API
+  description: API para gestión de vehículos de colección con imágenes en Google Drive.
+  version: "1.0"
+host: localhost:8080
+basePath: /api/v1

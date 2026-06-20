@@ -1,0 +1,43 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Credentials & Secrets
+credentials.json
+coleccion-*.json
+*-key.json
+*.pem
+*.key
+
+# Go
+*.exe
+*.test
+vendor/
+bin/
+dist/
+
+# Database
+migrations/
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build & Temp
+tmp/
+temp/
+*.out
+build/
+
+# OS
+.DS_Store
+Thumbs.db
