@@ -20,11 +20,12 @@ import (
 
 const (
 	// maxImageWidth es el ancho máximo en píxeles; las imágenes más anchas se
-	// redimensionan manteniendo la proporción para reducir el peso.
-	maxImageWidth = 1280
-	// jpegQuality es la calidad de compresión JPEG (1-100). 80 da buen
-	// balance entre calidad visual y tamaño de archivo.
-	jpegQuality = 80
+	// redimensionan manteniendo la proporción para reducir el peso. 1024px es
+	// suficiente para verse bien y hace que la subida a Drive sea más rápida.
+	maxImageWidth = 1024
+	// jpegQuality es la calidad de compresión JPEG (1-100). 70 baja bastante el
+	// peso del archivo sin pérdida visible para fotos de vehículos.
+	jpegQuality = 70
 )
 
 type GoogleDriveService struct {
