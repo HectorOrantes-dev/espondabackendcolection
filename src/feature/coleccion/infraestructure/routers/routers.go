@@ -20,6 +20,7 @@ func RegisterColeccionRoutes(
 	{
 		col.POST("", createCtrl.Handle)
 		col.GET("", listCtrl.List)
+		col.GET("/resumen", listCtrl.Resumen)
 		col.GET("/export", exportCtrl.Handle)
 		col.GET("/backup", backupCtrl.Handle)
 		col.GET("/:id", listCtrl.GetByID)

@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -68,11 +69,20 @@ func (ctrl *UpdateColeccionController) Handle(c *gin.Context) {
 		})
 	}
 
+	// El precio solo se actualiza si el campo viene en el form (permite poner 0).
+	var precioPtr *float64
+	if precioStr := c.PostForm("precio"); precioStr != "" {
+		if p, err := strconv.ParseFloat(precioStr, 64); err == nil {
+			precioPtr = &p
+		}
+	}
+
 	input := application.UpdateColeccionInput{
 		ID:     id,
 		Nombre: c.PostForm("nombre"),
 		Marca:  c.PostForm("marca"),
 		Modelo: c.PostForm("modelo"),
+		Precio: precioPtr,
 		Images: images,
 		// Si el campo "etiquetas" viene en el form, se reemplazan; si no, nil
 		// y se conservan las actuales.

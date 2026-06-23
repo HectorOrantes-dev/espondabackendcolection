@@ -12,10 +12,31 @@ import (
 type ListColeccionController struct {
 	listUC    *application.ListColeccionUseCase
 	getByIDUC *application.GetByIDUseCase
+	resumenUC *application.ResumenColeccionUseCase
 }
 
-func NewListColeccionController(l *application.ListColeccionUseCase, g *application.GetByIDUseCase) *ListColeccionController {
-	return &ListColeccionController{listUC: l, getByIDUC: g}
+func NewListColeccionController(
+	l *application.ListColeccionUseCase,
+	g *application.GetByIDUseCase,
+	r *application.ResumenColeccionUseCase,
+) *ListColeccionController {
+	return &ListColeccionController{listUC: l, getByIDUC: g, resumenUC: r}
+}
+
+// Resumen godoc
+// @Summary Resumen de la colección (cantidad y valor total)
+// @Tags coleccion
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} entities.ResumenColeccion
+// @Router /coleccion/resumen [get]
+func (ctrl *ListColeccionController) Resumen(c *gin.Context) {
+	resumen, err := ctrl.resumenUC.Execute(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resumen)
 }
 
 // List godoc

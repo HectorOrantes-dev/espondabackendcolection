@@ -13,6 +13,8 @@ type ColeccionRepository interface {
 	GetByID(ctx context.Context, id string) (*entities.Vehiculo, error)
 	Update(ctx context.Context, v *entities.Vehiculo) error
 	Delete(ctx context.Context, id string) error
+	// Resumen retorna el conteo y valor total de la colección.
+	Resumen(ctx context.Context) (*entities.ResumenColeccion, error)
 }
 
 // ImageService es el puerto para el servicio de almacenamiento de imágenes.

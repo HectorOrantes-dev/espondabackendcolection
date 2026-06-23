@@ -56,7 +56,7 @@ func buildVehiculosExcel(vehiculos []entities.Vehiculo) *excelize.File {
 	const sheet = "Vehiculos"
 	f.SetSheetName("Sheet1", sheet)
 
-	headers := []string{"#", "Nombre", "Marca", "Modelo", "Etiquetas"}
+	headers := []string{"#", "Nombre", "Marca", "Modelo", "Precio", "Etiquetas"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -65,20 +65,31 @@ func buildVehiculosExcel(vehiculos []entities.Vehiculo) *excelize.File {
 	headerStyle, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true},
 	})
-	f.SetCellStyle(sheet, "A1", "E1", headerStyle)
+	f.SetCellStyle(sheet, "A1", "F1", headerStyle)
 
+	var total float64
 	for idx, v := range vehiculos {
 		row := idx + 2
 		f.SetCellValue(sheet, fmt.Sprintf("A%d", row), idx+1)
 		f.SetCellValue(sheet, fmt.Sprintf("B%d", row), v.Nombre)
 		f.SetCellValue(sheet, fmt.Sprintf("C%d", row), v.Marca)
 		f.SetCellValue(sheet, fmt.Sprintf("D%d", row), v.Modelo)
-		f.SetCellValue(sheet, fmt.Sprintf("E%d", row), etiquetasToString(v.Etiquetas))
+		f.SetCellValue(sheet, fmt.Sprintf("E%d", row), v.Precio)
+		f.SetCellValue(sheet, fmt.Sprintf("F%d", row), etiquetasToString(v.Etiquetas))
+		total += v.Precio
 	}
+
+	// Fila de total al final
+	totalRow := len(vehiculos) + 2
+	f.SetCellValue(sheet, fmt.Sprintf("D%d", totalRow), "TOTAL")
+	f.SetCellValue(sheet, fmt.Sprintf("E%d", totalRow), total)
+	totalStyle, _ := f.NewStyle(&excelize.Style{Font: &excelize.Font{Bold: true}})
+	f.SetCellStyle(sheet, fmt.Sprintf("D%d", totalRow), fmt.Sprintf("E%d", totalRow), totalStyle)
 
 	f.SetColWidth(sheet, "A", "A", 6)
 	f.SetColWidth(sheet, "B", "D", 25)
-	f.SetColWidth(sheet, "E", "E", 35)
+	f.SetColWidth(sheet, "E", "E", 14)
+	f.SetColWidth(sheet, "F", "F", 35)
 
 	return f
 }

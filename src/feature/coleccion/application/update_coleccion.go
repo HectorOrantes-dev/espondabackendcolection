@@ -13,6 +13,8 @@ type UpdateColeccionInput struct {
 	Nombre string
 	Marca  string
 	Modelo string
+	// Precio: nil = no se toca; puntero = nuevo valor (permite poner 0).
+	Precio *float64
 	Images []ImageInput // Si se envían imágenes nuevas, reemplazan las anteriores
 	// EtiquetaIDs: nil = no se tocan las etiquetas; slice (aunque vacío) = reemplazo.
 	EtiquetaIDs []string
@@ -45,6 +47,9 @@ func (uc *UpdateColeccionUseCase) Execute(ctx context.Context, input UpdateColec
 	}
 	if input.Modelo != "" {
 		existing.Modelo = input.Modelo
+	}
+	if input.Precio != nil {
+		existing.Precio = *input.Precio
 	}
 
 	if len(input.Images) > 0 {

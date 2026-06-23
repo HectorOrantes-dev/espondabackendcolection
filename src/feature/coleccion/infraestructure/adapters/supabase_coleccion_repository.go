@@ -27,11 +27,11 @@ func (r *SupabaseColeccionRepository) Create(ctx context.Context, v *entities.Ve
 	defer tx.Rollback() //nolint:errcheck // no-op si ya se hizo commit
 
 	query := `
-		INSERT INTO vehiculos (id, nombre, marca, modelo, imagenes, image_ids, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO vehiculos (id, nombre, marca, modelo, precio, imagenes, image_ids, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 	_, err = tx.ExecContext(ctx, query,
-		v.ID, v.Nombre, v.Marca, v.Modelo,
+		v.ID, v.Nombre, v.Marca, v.Modelo, v.Precio,
 		pq.Array(nonNil(v.Imagenes)), pq.Array(nonNil(v.ImageIDs)),
 		v.CreatedAt, v.UpdatedAt,
 	)
@@ -55,11 +55,11 @@ func (r *SupabaseColeccionRepository) Update(ctx context.Context, v *entities.Ve
 
 	query := `
 		UPDATE vehiculos
-		SET nombre = $1, marca = $2, modelo = $3, imagenes = $4, image_ids = $5, updated_at = $6
-		WHERE id = $7
+		SET nombre = $1, marca = $2, modelo = $3, precio = $4, imagenes = $5, image_ids = $6, updated_at = $7
+		WHERE id = $8
 	`
 	res, err := tx.ExecContext(ctx, query,
-		v.Nombre, v.Marca, v.Modelo,
+		v.Nombre, v.Marca, v.Modelo, v.Precio,
 		pq.Array(nonNil(v.Imagenes)), pq.Array(nonNil(v.ImageIDs)),
 		v.UpdatedAt, v.ID,
 	)
@@ -111,7 +111,7 @@ func nonNil(s []string) []string {
 
 func (r *SupabaseColeccionRepository) GetAll(ctx context.Context, etiquetaFiltro string) ([]entities.Vehiculo, error) {
 	query := `
-		SELECT v.id, v.nombre, v.marca, v.modelo, v.imagenes, v.image_ids, v.created_at, v.updated_at,
+		SELECT v.id, v.nombre, v.marca, v.modelo, v.precio, v.imagenes, v.image_ids, v.created_at, v.updated_at,
 		       COALESCE(
 		           json_agg(json_build_object('id', e.id, 'nombre', e.nombre))
 		           FILTER (WHERE e.id IS NOT NULL), '[]'
@@ -156,7 +156,7 @@ func (r *SupabaseColeccionRepository) GetAll(ctx context.Context, etiquetaFiltro
 
 func (r *SupabaseColeccionRepository) GetByID(ctx context.Context, id string) (*entities.Vehiculo, error) {
 	query := `
-		SELECT v.id, v.nombre, v.marca, v.modelo, v.imagenes, v.image_ids, v.created_at, v.updated_at,
+		SELECT v.id, v.nombre, v.marca, v.modelo, v.precio, v.imagenes, v.image_ids, v.created_at, v.updated_at,
 		       COALESCE(
 		           json_agg(json_build_object('id', e.id, 'nombre', e.nombre))
 		           FILTER (WHERE e.id IS NOT NULL), '[]'
@@ -191,6 +191,24 @@ func (r *SupabaseColeccionRepository) Delete(ctx context.Context, id string) err
 	return nil
 }
 
+// Resumen retorna el conteo de vehículos, el valor total y el precio promedio.
+func (r *SupabaseColeccionRepository) Resumen(ctx context.Context) (*entities.ResumenColeccion, error) {
+	query := `
+		SELECT COUNT(*)                         AS cantidad,
+		       COALESCE(SUM(precio), 0)         AS total,
+		       COALESCE(AVG(precio), 0)         AS promedio
+		FROM vehiculos
+	`
+	var res entities.ResumenColeccion
+	err := r.db.QueryRowContext(ctx, query).Scan(
+		&res.CantidadVehiculos, &res.ValorTotal, &res.PrecioPromedio,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error calculando resumen: %w", err)
+	}
+	return &res, nil
+}
+
 // scanner abstrae sql.Row y sql.Rows para reutilizar la lógica de scan.
 type scanner interface {
 	Scan(dest ...any) error
@@ -201,7 +219,7 @@ func scanVehiculoConEtiquetas(s scanner) (entities.Vehiculo, error) {
 	var imagenes, imageIDs pq.StringArray
 	var etiquetasJSON []byte
 
-	err := s.Scan(&v.ID, &v.Nombre, &v.Marca, &v.Modelo, &imagenes, &imageIDs,
+	err := s.Scan(&v.ID, &v.Nombre, &v.Marca, &v.Modelo, &v.Precio, &imagenes, &imageIDs,
 		&v.CreatedAt, &v.UpdatedAt, &etiquetasJSON)
 	if err != nil {
 		return v, err

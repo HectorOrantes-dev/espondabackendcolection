@@ -29,10 +29,11 @@ func NewColeccionDependencies(db *sql.DB, imgService domain.ImageService) *Colec
 	getByIDUC := application.NewGetByIDUseCase(repo)
 	updateUC := application.NewUpdateColeccionUseCase(repo, imgService)
 	deleteUC := application.NewDeleteColeccionUseCase(repo, imgService)
+	resumenUC := application.NewResumenColeccionUseCase(repo)
 
 	return &ColeccionDependencies{
 		createCtrl: controllers.NewCreateColeccionController(createUC),
-		listCtrl:   controllers.NewListColeccionController(listUC, getByIDUC),
+		listCtrl:   controllers.NewListColeccionController(listUC, getByIDUC, resumenUC),
 		updateCtrl: controllers.NewUpdateColeccionController(updateUC),
 		deleteCtrl: controllers.NewDeleteColeccionController(deleteUC),
 		exportCtrl: controllers.NewExportColeccionController(listUC),

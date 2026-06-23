@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -74,10 +75,14 @@ func (ctrl *CreateColeccionController) Handle(c *gin.Context) {
 		})
 	}
 
+	// El precio es opcional; si no viene o es inválido, queda en 0.
+	precio, _ := strconv.ParseFloat(c.PostForm("precio"), 64)
+
 	input := application.CreateColeccionInput{
 		Nombre:      nombre,
 		Marca:       marca,
 		Modelo:      modelo,
+		Precio:      precio,
 		Images:      images,
 		EtiquetaIDs: form.Value["etiquetas"], // IDs de etiquetas (campo repetible)
 	}

@@ -21,6 +21,7 @@ type CreateColeccionInput struct {
 	Nombre      string
 	Marca       string
 	Modelo      string
+	Precio      float64
 	Images      []ImageInput
 	EtiquetaIDs []string
 }
@@ -49,6 +50,7 @@ func (uc *CreateColeccionUseCase) Execute(ctx context.Context, input CreateColec
 		Nombre:    input.Nombre,
 		Marca:     input.Marca,
 		Modelo:    input.Modelo,
+		Precio:      input.Precio,
 		Imagenes:    urls,
 		ImageIDs:    ids,
 		EtiquetaIDs: input.EtiquetaIDs,
